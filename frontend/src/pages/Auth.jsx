@@ -29,9 +29,9 @@ export default function Auth({ navigate }) {
         }
       } else {
         result = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        if (!result.error) {
-          navigate('onboarding')
-        }
+        // if (!result.error) {
+        //   navigate('onboarding')
+        // }
       }
 
       if (result.error) setError(result.error.message)

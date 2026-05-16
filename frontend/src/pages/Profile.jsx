@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase } from '../supabaseClient'
+// import { supabase } from '../supabaseClient'
 
 const ROLES = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'UI/UX Designer']
 const SKILLS = ['React.js', 'Node.js', 'Express.js', 'Next.js', 'JavaScript', 'HTML', 'CSS', 'MySQL', 'PostgreSQL', 'Figma', 'Canva', 'GitHub']
