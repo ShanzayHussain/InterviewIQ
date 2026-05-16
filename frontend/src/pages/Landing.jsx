@@ -58,7 +58,7 @@ export default function Landing({ navigate, session }) {
           className="glow-btn"
           style={{ fontSize: '14px', padding: '9px clamp(14px, 3vw, 22px)', whiteSpace: 'nowrap' }}
         >
-          {isLoggedIn ? 'Go to Dashboard ->' : 'Get Started ->'}
+          {isLoggedIn ? 'Go to Dashboard ->' : 'Get Started →'}
         </button>
       </header>
 
@@ -131,7 +131,7 @@ export default function Landing({ navigate, session }) {
             className="glow-btn"
             style={{ fontSize: '16px', padding: '15px 36px', animation: 'pulse-glow 3s ease-in-out infinite' }}
           >
-          {isLoggedIn ? 'Go to Dashboard' : 'Start Practicing Free'} {'->'}
+          {isLoggedIn ? 'Go to Dashboard' : 'Start Practicing Free'} {'→'}
           </button>
           {/* <button className="outline-btn" style={{ fontSize: '15px', padding: '14px 28px' }}>
             Watch Demo
@@ -261,7 +261,7 @@ export default function Landing({ navigate, session }) {
             className="glow-btn"
             style={{ fontSize: '16px', padding: '14px 36px' }}
           >
-            {isLoggedIn ? 'Go to Dashboard ->' : 'Create Free Account ->'}
+            {isLoggedIn ? 'Go to Dashboard ->' : 'Create Free Account →'}
           </button>
         </div>
       </section>

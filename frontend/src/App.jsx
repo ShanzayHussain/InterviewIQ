@@ -139,6 +139,7 @@ export default function App() {
           session={session}
           userProfile={userProfile}
           navigate={navigate}
+          setUserProfile={setUserProfile}    
         />
       )}
     </div>

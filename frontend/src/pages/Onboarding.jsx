@@ -248,7 +248,7 @@ export default function Onboarding({ session, saveProfile }) {
           className="glow-btn"
           style={{ width: '100%', fontSize: '15px', padding: '13px', marginTop: '2rem' }}
         >
-          Continue to dashboard {'->'}
+          Continue to dashboard {'→'}
         </button>
       </div>
     </div>

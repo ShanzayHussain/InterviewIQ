@@ -83,7 +83,7 @@ export default function Auth({ navigate }) {
           onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
         >
-          Back to home
+          ← Back to home
         </button>
 
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -184,7 +184,7 @@ export default function Auth({ navigate }) {
         >
           {loading
             ? 'Please wait...'
-            : isSignup ? 'Create account ->' : 'Sign in ->'
+            : isSignup ? 'Create account' : 'Sign in'
           }
         </button>
 

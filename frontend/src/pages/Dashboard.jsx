@@ -46,8 +46,18 @@ export default function Dashboard({ userProfile, navigate, lastResult }) {
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           marginBottom: '0.5rem'
         }}>
-          Hey, {userProfile?.name || userProfile?.username} 👋
-        </h1>
+          Hey, {userProfile?.name || userProfile?.username} 
+           <span
+    style={{
+      WebkitTextFillColor: 'initial',
+      background: 'none'
+    }}
+  >
+      ⚡
+  </span>
+
+        </h1> 
+
         <p style={{ color: 'var(--text2)', fontSize: '16px' }}>
           Ready to practice your{' '}
           <span style={{ color: 'var(--accent2)', fontWeight: '500' }}>{userProfile?.role}</span> interview?

@@ -1,198 +1,214 @@
-// ── Profile page: view user info (/profile) ──
-// Shows username (read-only), name, email, role, skills, position
-// All data comes from userProfile saved during onboarding
+import { useState } from 'react'
+import { supabase } from '../supabaseClient'
 
-export default function Profile({ session, userProfile, navigate }) {
+const ROLES = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'UI/UX Designer']
+const SKILLS = ['React.js', 'Node.js', 'Express.js', 'Next.js', 'JavaScript', 'HTML', 'CSS', 'MySQL', 'PostgreSQL', 'Figma', 'Canva', 'GitHub']
+const POSITIONS = ['Internship', 'Full Time Job']
+
+export default function Profile({ session, userProfile, navigate, setUserProfile }) {
+  const [editing, setEditing]       = useState(false)
+  const [name, setName]             = useState(userProfile?.name || '')
+  const [role, setRole]             = useState(userProfile?.role || '')
+  const [skills, setSkills]         = useState(userProfile?.skills || [])
+  const [position, setPosition]     = useState(userProfile?.position || '')
+  const [saved, setSaved]           = useState(false)
+
+  const toggleSkill = (skill) => {
+    setSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill])
+  }
+
+  const handleSave = () => {
+    const updated = { ...userProfile, name, role, skills, position }
+    // Save to localStorage using user ID (same key as onboarding)
+    localStorage.setItem(`profile_${session.user.id}`, JSON.stringify(updated))
+    setUserProfile(updated)
+    setEditing(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const handleCancel = () => {
+    // Reset to original values
+    setName(userProfile?.name || '')
+    setRole(userProfile?.role || '')
+    setSkills(userProfile?.skills || [])
+    setPosition(userProfile?.position || '')
+    setEditing(false)
+  }
+
   return (
     <div style={{
-      minHeight: '100vh',
-      paddingTop: '64px',
+      minHeight: '100vh', paddingTop: '64px',
       padding: '90px 2rem 4rem',
-      maxWidth: '700px',
-      margin: '0 auto',
+      maxWidth: '700px', margin: '0 auto',
       position: 'relative', zIndex: 1
     }}>
 
-      {/* ── Page header ── */}
-      <div className="animate-fade-up" style={{ marginBottom: '2.5rem' }}>
+      {/* Header */}
+      <div className="animate-fade-up" style={{ marginBottom: '2rem' }}>
         <button
           onClick={() => navigate('dashboard')}
-          style={{
-            background: 'none', border: 'none',
-            color: 'var(--text3)', fontSize: '13px',
-            display: 'flex', alignItems: 'center', gap: '6px',
-            marginBottom: '1.5rem', cursor: 'pointer',
-            transition: 'color 0.2s'
-          }}
+          style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: '13px', cursor: 'pointer', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
-        >
-          ← Dashboard
-        </button>
-        <h1 style={{
-          fontFamily: 'var(--font-head)', fontWeight: '800',
-          fontSize: '2rem', marginBottom: '0.5rem'
-        }}>Your Profile</h1>
-        <p style={{ color: 'var(--text2)', fontSize: '15px' }}>
-          Your account information and interview preferences
-        </p>
+        >← Dashboard</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <h1 style={{ fontFamily: 'var(--font-head)', fontWeight: '800', fontSize: '2rem', marginBottom: '0.4rem' }}>Your Profile</h1>
+            <p style={{ color: 'var(--text2)', fontSize: '15px' }}>Manage your account and interview preferences</p>
+          </div>
+          {!editing ? (
+            <button onClick={() => setEditing(true)} className="outline-btn" style={{ padding: '9px 20px', fontSize: '13px' }}>
+              ✏️ Edit
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={handleCancel} className="outline-btn" style={{ padding: '9px 16px', fontSize: '13px' }}>Cancel</button>
+              <button onClick={handleSave} className="glow-btn" style={{ padding: '9px 20px', fontSize: '13px' }}>Save →</button>
+            </div>
+          )}
+        </div>
+        {saved && (
+          <div style={{
+            marginTop: '12px', padding: '10px 14px',
+            background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+            borderRadius: 'var(--radius-sm)', fontSize: '13px', color: 'var(--green)'
+          }}>✓ Profile saved successfully</div>
+        )}
       </div>
 
-      {/* ── Avatar + name header ── */}
-      <div
-        className="glass animate-fade-up"
-        style={{
-          padding: '2rem',
-          borderRadius: 'var(--radius-lg)',
-          marginBottom: '1rem',
-          display: 'flex', alignItems: 'center', gap: '1.5rem'
-        }}
-      >
-        {/* Large avatar */}
+      {/* Avatar + locked fields */}
+      <div className="glass" style={{ padding: '1.5rem 2rem', borderRadius: 'var(--radius-lg)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
         <div style={{
-          width: '72px', height: '72px', flexShrink: 0,
+          width: '64px', height: '64px', flexShrink: 0,
           background: 'linear-gradient(135deg, var(--accent), var(--accent3))',
-          borderRadius: '50%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '28px', fontWeight: '800', color: '#fff',
-          fontFamily: 'var(--font-head)',
+          borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '24px', fontWeight: '800', color: '#fff', fontFamily: 'var(--font-head)',
           boxShadow: '0 8px 24px rgba(108,99,255,0.35)'
         }}>
-          {userProfile?.username?.slice(0, 2).toUpperCase() || 'IQ'}
+          {userProfile?.username?.slice(0, 2).toUpperCase() || 'AI'}
         </div>
-
         <div>
-          <h2 style={{
-            fontFamily: 'var(--font-head)', fontWeight: '700', fontSize: '1.4rem', marginBottom: '4px'
-          }}>
-            {userProfile?.name || '—'}
-          </h2>
-          {/* Username — clearly read-only */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text3)' }}>
-              @{userProfile?.username || '—'}
-            </span>
-            <span style={{
-              fontSize: '10px', padding: '1px 7px',
-              background: 'var(--surface2)', borderRadius: '99px',
-              color: 'var(--text3)', border: '1px solid var(--border)'
-            }}>cannot edit</span>
-          </div>
+          <p style={{ fontFamily: 'var(--font-head)', fontWeight: '700', fontSize: '1.2rem', marginBottom: '3px' }}>
+            {userProfile?.name}
+          </p>
+          <p style={{ fontSize: '13px', color: 'var(--text3)', marginBottom: '3px' }}>@{userProfile?.username} 🔒</p>
           <p style={{ fontSize: '13px', color: 'var(--text3)' }}>{session.user.email}</p>
         </div>
       </div>
 
-      {/* ── Info fields ── */}
-      <div
-        className="glass animate-fade-up"
-        style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: '1rem' }}
-      >
-        {/* Each field row */}
-        {[
-          { label: 'Full name',   value: userProfile?.name,  icon: '👤' },
-          { label: 'Email',       value: session.user.email, icon: '✉️' },
-          { label: 'Username',    value: `@${userProfile?.username}`, icon: '🏷️', locked: true },
-        ].map(({ label, value, icon, locked }, i, arr) => (
-          <div
-            key={label}
-            style={{
-              padding: '1.1rem 1.5rem',
-              display: 'flex', alignItems: 'center', gap: '14px',
-              borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none'
-            }}
-          >
-            <span style={{ fontSize: '20px', flexShrink: 0 }}>{icon}</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>
-                {label}
-              </p>
-              <p style={{ fontSize: '15px', color: 'var(--text)', fontWeight: '400' }}>
-                {value || '—'}
-              </p>
-            </div>
-            {locked && (
-              <span style={{ fontSize: '16px', color: 'var(--text3)' }}>🔒</span>
-            )}
-          </div>
-        ))}
-      </div>
+      {/* Editable fields */}
+      <div className="glass" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: '1rem' }}>
 
-      {/* ── Interview settings ── */}
-      <div
-        className="glass animate-fade-up"
-        style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: '1rem' }}
-      >
-        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-          <p style={{
-            fontSize: '12px', fontWeight: '600', color: 'var(--text3)',
-            textTransform: 'uppercase', letterSpacing: '0.08em'
-          }}>Interview settings</p>
+        {/* Name */}
+        <div style={{ padding: '1.1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+          <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Full name</p>
+          {editing ? (
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              style={{
+                width: '100%', padding: '9px 12px',
+                background: 'var(--bg3)', border: '1px solid var(--border2)',
+                borderRadius: 'var(--radius-sm)', color: 'var(--text)', fontSize: '14px'
+              }}
+              onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border2)'}
+            />
+          ) : (
+            <p style={{ fontSize: '15px', color: 'var(--text)' }}>{userProfile?.name || '—'}</p>
+          )}
         </div>
 
-        {[
-          { label: 'Role',     value: userProfile?.role,     icon: '🎯' },
-          { label: 'Position', value: userProfile?.position, icon: '💼' },
-        ].map(({ label, value, icon }, i) => (
-          <div key={label} style={{
-            padding: '1.1rem 1.5rem',
-            display: 'flex', alignItems: 'center', gap: '14px',
-            borderBottom: i === 0 ? '1px solid var(--border)' : 'none'
-          }}>
-            <span style={{ fontSize: '20px', flexShrink: 0 }}>{icon}</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '2px' }}>
-                {label}
-              </p>
-              <p style={{ fontSize: '15px', color: 'var(--text)' }}>{value || '—'}</p>
+        {/* Role */}
+        <div style={{ padding: '1.1rem 1.5rem' }}>
+          <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Role</p>
+          {editing ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {ROLES.map(r => (
+                <button
+                  key={r}
+                  onClick={() => setRole(r)}
+                  style={{
+                    padding: '7px 14px',
+                    background: role === r ? 'rgba(108,99,255,0.2)' : 'var(--surface)',
+                    border: `1px solid ${role === r ? 'var(--accent)' : 'var(--border)'}`,
+                    borderRadius: '99px', fontSize: '13px', fontWeight: '500',
+                    color: role === r ? 'var(--accent2)' : 'var(--text2)', cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >{r}</button>
+              ))}
             </div>
-            <span style={{
-              padding: '3px 10px',
-              background: 'rgba(108,99,255,0.12)',
-              border: '1px solid rgba(108,99,255,0.25)',
-              borderRadius: '99px', fontSize: '12px', color: 'var(--accent2)', fontWeight: '500'
-            }}>active</span>
-          </div>
-        ))}
+          ) : (
+            <p style={{ fontSize: '15px', color: 'var(--text)' }}>{userProfile?.role || '—'}</p>
+          )}
+        </div>
       </div>
 
-      {/* ── Skills ── */}
-      {userProfile?.skills?.length > 0 && (
-        <div
-          className="glass animate-fade-up"
-          style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem' }}
-        >
-          <p style={{
-            fontSize: '12px', fontWeight: '600', color: 'var(--text3)',
-            textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px'
-          }}>Skills ({userProfile.skills.length})</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {userProfile.skills.map(skill => (
-              <span key={skill} style={{
-                padding: '6px 14px',
-                background: 'rgba(108,99,255,0.1)',
-                border: '1px solid rgba(108,99,255,0.25)',
-                borderRadius: '99px', fontSize: '13px', fontWeight: '500',
-                color: 'var(--accent2)'
-              }}>{skill}</span>
+      {/* Skills */}
+      <div className="glass" style={{ padding: '1.25rem 1.5rem', borderRadius: 'var(--radius-lg)', marginBottom: '1rem' }}>
+        <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
+          Skills {editing && <span style={{ color: 'var(--text3)', textTransform: 'none', fontSize: '11px' }}>(tap to toggle)</span>}
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {(editing ? SKILLS : userProfile?.skills || []).map(skill => {
+            const isSelected = skills.includes(skill)
+            return (
+              <button
+                key={skill}
+                onClick={() => editing && toggleSkill(skill)}
+                style={{
+                  padding: '5px 13px',
+                  background: editing
+                    ? isSelected ? 'rgba(108,99,255,0.2)' : 'var(--surface)'
+                    : 'rgba(108,99,255,0.1)',
+                  border: `1px solid ${editing ? isSelected ? 'var(--accent)' : 'var(--border)' : 'rgba(108,99,255,0.25)'}`,
+                  borderRadius: '99px', fontSize: '13px', fontWeight: '500',
+                  color: editing ? isSelected ? 'var(--accent2)' : 'var(--text2)' : 'var(--accent2)',
+                  cursor: editing ? 'pointer' : 'default',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {editing && isSelected && '✓ '}{skill}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Position */}
+      <div className="glass" style={{ padding: '1.25rem 1.5rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem' }}>
+        <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Position</p>
+        {editing ? (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {POSITIONS.map(p => (
+              <button
+                key={p}
+                onClick={() => setPosition(p)}
+                style={{
+                  flex: 1, padding: '10px',
+                  background: position === p ? 'rgba(108,99,255,0.2)' : 'var(--surface)',
+                  border: `1px solid ${position === p ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: 'var(--radius)', fontSize: '14px', fontWeight: '500',
+                  color: position === p ? 'var(--accent2)' : 'var(--text2)', cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >{p}</button>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p style={{ fontSize: '15px', color: 'var(--text)' }}>{userProfile?.position || '—'}</p>
+        )}
+      </div>
 
-      {/* ── Actions ── */}
+      {/* Bottom actions */}
       <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          onClick={() => navigate('interview')}
-          className="glow-btn"
-          style={{ flex: 1, padding: '13px', fontSize: '14px' }}
-        >
+        <button onClick={() => navigate('interview')} className="glow-btn" style={{ flex: 1, padding: '13px', fontSize: '14px' }}>
           ▶ Start Interview
         </button>
-        <button
-          onClick={() => navigate('dashboard')}
-          className="outline-btn"
-          style={{ flex: 1, padding: '13px', fontSize: '14px' }}
-        >
+        <button onClick={() => navigate('dashboard')} className="outline-btn" style={{ flex: 1, padding: '13px', fontSize: '14px' }}>
           ← Dashboard
         </button>
       </div>
