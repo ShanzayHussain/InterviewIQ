@@ -133,9 +133,6 @@ export default function Landing({ navigate, session }) {
           >
           {isLoggedIn ? 'Go to Dashboard' : 'Start Practicing Free'} {'→'}
           </button>
-          {/* <button className="outline-btn" style={{ fontSize: '15px', padding: '14px 28px' }}>
-            Watch Demo
-          </button> */}
         </div>
 
       </section>

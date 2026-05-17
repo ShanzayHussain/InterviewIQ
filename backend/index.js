@@ -1,15 +1,25 @@
 const express = require('express')
-const cors = require('cors')
+const cors    = require('cors')
 require('dotenv').config()
 
 const app = express()
+
+// ── Middleware ──
 app.use(cors())
 app.use(express.json())
 
+// ── Routes ──
+// All interview endpoints live in routes/interview.js
+const interviewRoutes = require('./routes/interview')
+app.use('/api', interviewRoutes)
+
+// ── Health check ──
 app.get('/', (req, res) => {
-  res.json({ status: 'server is running' })
+  res.json({ status: 'InterviewAI backend running' })
 })
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`)
+// ── Start server ──
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`)
 })

@@ -1,7 +1,4 @@
-// ── Dashboard: main home page after login ──
-// Shows welcome, profile summary, last result score, and Start Interview CTA
-
-export default function Dashboard({ userProfile, navigate, lastResult }) {
+export default function Dashboard({ userProfile, navigate, lastResult, sessionCount }) {
 
   // ── Star rating component (reused for score display) ──
   const StarRating = ({ score }) => {
@@ -47,7 +44,7 @@ export default function Dashboard({ userProfile, navigate, lastResult }) {
           marginBottom: '0.5rem'
         }}>
           Hey, {userProfile?.name || userProfile?.username} 
-           <span
+          <span
     style={{
       WebkitTextFillColor: 'initial',
       background: 'none'
@@ -55,9 +52,7 @@ export default function Dashboard({ userProfile, navigate, lastResult }) {
   >
       ⚡
   </span>
-
-        </h1> 
-
+        </h1>
         <p style={{ color: 'var(--text2)', fontSize: '16px' }}>
           Ready to practice your{' '}
           <span style={{ color: 'var(--accent2)', fontWeight: '500' }}>{userProfile?.role}</span> interview?
@@ -75,7 +70,7 @@ export default function Dashboard({ userProfile, navigate, lastResult }) {
           { label: 'Role',     value: userProfile?.role || '—',          icon: '🎯' },
           { label: 'Position', value: userProfile?.position || '—',       icon: '💼' },
           { label: 'Skills',   value: `${userProfile?.skills?.length || 0} selected`, icon: '🛠️' },
-          { label: 'Sessions', value: lastResult ? '1+' : '0',            icon: '📊' },
+          { label: 'Sessions', value: String(sessionCount || 0),            icon: '📊' },
         ].map(({ label, value, icon }) => (
           <div
             key={label}
@@ -279,3 +274,4 @@ export default function Dashboard({ userProfile, navigate, lastResult }) {
     </div>
   )
 }
+

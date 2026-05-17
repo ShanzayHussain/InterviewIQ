@@ -10,7 +10,8 @@ export default function Auth({ navigate }) {
   const [success, setSuccess] = useState('')
 
   const handleSubmit = async () => {
-    if (!email || !password) { setError('Please fill in all fields'); return }
+    if (!email || !password) { setError('Please fill in all fields'); 
+      return }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
 
     setLoading(true)
@@ -23,7 +24,7 @@ export default function Auth({ navigate }) {
       if (isSignup) {
         result = await supabase.auth.signUp({ email: email.trim(), password })
         if (!result.error) {
-          setSuccess('Account created! You can now sign in.')
+          setSuccess('Account created! Please check your email and click the confirmation link before signing in.')
           setIsSignup(false)
           setPassword('')
         }

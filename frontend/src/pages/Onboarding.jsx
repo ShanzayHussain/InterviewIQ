@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 const roles = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'UI/UX Designer']
-const positions = ['Internship', 'Junior Role', 'Entry Level', 'Mid Level']
-const skills = ['React', 'JavaScript', 'Node.js', 'Express', 'MongoDB', 'SQL', 'HTML/CSS', 'Figma', 'REST APIs', 'Git']
+const positions = ['Internship', 'Full Time Job']
+const skills = ['React.js', 'Node.js', 'Express.js', 'Next.js', 'JavaScript', 'HTML', 'CSS', 'MySQL', 'PostgreSQL', 'Figma', 'Canva', 'REST APIs', 'GitHub']
 
 export default function Onboarding({ session, saveProfile }) {
   const emailName = session?.user?.email?.split('@')[0] || ''
@@ -10,7 +10,7 @@ export default function Onboarding({ session, saveProfile }) {
   const [username, setUsername] = useState(emailName)
   const [role, setRole] = useState(roles[0])
   const [position, setPosition] = useState(positions[0])
-  const [selectedSkills, setSelectedSkills] = useState(['React', 'JavaScript'])
+  const [selectedSkills, setSelectedSkills] = useState(['React.js', 'JavaScript'])
   const [error, setError] = useState('')
 
   const toggleSkill = (skill) => {

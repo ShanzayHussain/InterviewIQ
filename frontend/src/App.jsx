@@ -27,8 +27,25 @@ export default function App() {
 
   // ── Interview results from last session (shown on dashboard) ──
   const [lastResult, setLastResult] = useState(null)
+  const [sessionCount, setSessionCount] = useState(0)
   const loadProfile = useCallback((userId) => {
     const saved = localStorage.getItem(`profile_${userId}`)
+    const savedResult = localStorage.getItem(`lastResult_${userId}`)
+    const savedSessionCount = localStorage.getItem(`sessionCount_${userId}`)
+
+    if (savedResult) {
+      try {
+        setLastResult(JSON.parse(savedResult))
+      } catch {
+        localStorage.removeItem(`lastResult_${userId}`)
+        setLastResult(null)
+      }
+    } else {
+      setLastResult(null)
+    }
+
+    setSessionCount(Number(savedSessionCount) || 0)
+
     if (saved) {
       try {
         setUserProfile(JSON.parse(saved))
@@ -36,6 +53,8 @@ export default function App() {
       } catch {
         localStorage.removeItem(`profile_${userId}`)
         setUserProfile(null)
+        setLastResult(null)
+        setSessionCount(0)
         setPage('onboarding')
       }
     } else {
@@ -62,6 +81,8 @@ export default function App() {
         // Logged out — go to landing
         setPage('landing')
         setUserProfile(null)
+        setLastResult(null)
+        setSessionCount(0)
       }
     })
 
@@ -79,6 +100,17 @@ export default function App() {
 
   // ── Navigation helper passed to all pages ──
   const navigate = (target) => setPage(target)
+
+  const saveInterviewResult = (result) => {
+    const userId = session.user.id
+    const nextCount = sessionCount + 1
+    const resultWithDate = { ...result, completedAt: new Date().toISOString() }
+
+    localStorage.setItem(`lastResult_${userId}`, JSON.stringify(resultWithDate))
+    localStorage.setItem(`sessionCount_${userId}`, String(nextCount))
+    setLastResult(resultWithDate)
+    setSessionCount(nextCount)
+  }
   // ── Show full-screen loader while checking auth ──
   if (loading) return <Loader />
 
@@ -120,6 +152,7 @@ export default function App() {
           userProfile={userProfile}
           navigate={navigate}
           lastResult={lastResult}
+          sessionCount={sessionCount}
         />
       )}
 
@@ -129,7 +162,7 @@ export default function App() {
           session={session}
           userProfile={userProfile}
           navigate={navigate}
-          setLastResult={setLastResult}
+          setLastResult={saveInterviewResult}
         />
       )}
 

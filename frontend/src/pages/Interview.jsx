@@ -5,7 +5,8 @@ import axios from 'axios'
 // Layout: left = interview chat | right = AI chatbot assistant
 // Flow: Start → AI asks Q → User answers → Feedback → Next Q or Stop → Score shown
 
-const API = 'http://localhost:5000' // backend URL
+
+const API = ''  // empty string — Vite proxy handles it
 
 export default function Interview({ userProfile, navigate, setLastResult }) {
 
@@ -20,6 +21,9 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
   const [allFeedback, setAllFeedback]   = useState([])        // feedback per question
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
+  const [isSpeaking, setIsSpeaking]     = useState(false)
+  const [isListening, setIsListening]   = useState(false)
+  const [voiceError, setVoiceError]     = useState('')
 
   // ── Chatbot state ──
   const [chatOpen, setChatOpen]         = useState(false)
@@ -32,10 +36,102 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
   // Scroll refs
   const interviewEndRef = useRef(null)
   const chatEndRef      = useRef(null)
+  const recognitionRef  = useRef(null)
 
   // Auto scroll
   useEffect(() => { interviewEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [feedback, currentQuestion])
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMessages])
+
+  const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const SpeechRecognition = typeof window !== 'undefined'
+    ? window.SpeechRecognition || window.webkitSpeechRecognition
+    : null
+  const canListen = Boolean(SpeechRecognition)
+
+  // Voice cleanup: stop any browser speech or microphone session when the page unmounts.
+  useEffect(() => {
+    return () => {
+      if (canSpeak) window.speechSynthesis.cancel()
+      recognitionRef.current?.stop()
+    }
+  }, [canSpeak])
+
+  const speakText = (text) => {
+    if (!text) return
+    if (!canSpeak) {
+      setVoiceError('Text to speech is not supported in this browser.')
+      return
+    }
+
+    // SpeechSynthesis reads the AI question aloud directly in the browser.
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.rate = 0.95
+    utterance.pitch = 1
+    utterance.onstart = () => setIsSpeaking(true)
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => {
+      setIsSpeaking(false)
+      // setVoiceError('Could not read the question aloud.')
+    }
+    setVoiceError('')
+    window.speechSynthesis.speak(utterance)
+  }
+
+  const stopSpeaking = () => {
+    if (!canSpeak) return
+    window.speechSynthesis.cancel()
+    setIsSpeaking(false)
+  }
+
+  const startListening = () => {
+    if (!canListen) {
+      setVoiceError('Speech to text is not supported in this browser. Try Chrome or Edge.')
+      return
+    }
+
+    // SpeechRecognition converts the candidate's voice into the answer textarea.
+    const recognition = new SpeechRecognition()
+    const startingAnswer = answer.trim()
+    let confirmedTranscript = ''
+
+    recognition.continuous = true
+    recognition.interimResults = true
+    recognition.lang = 'en-US'
+    recognitionRef.current = recognition
+
+    recognition.onstart = () => {
+      setIsListening(true)
+      setVoiceError('')
+    }
+    recognition.onresult = (event) => {
+      let interimTranscript = ''
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const transcript = event.results[i][0].transcript
+        if (event.results[i].isFinal) confirmedTranscript += transcript
+        else interimTranscript += transcript
+      }
+
+      const spokenAnswer = `${confirmedTranscript} ${interimTranscript}`.trim()
+      const nextAnswer = [startingAnswer, spokenAnswer].filter(Boolean).join(' ')
+      setAnswer(nextAnswer)
+    }
+    recognition.onerror = (event) => {
+      setVoiceError(event.error === 'not-allowed'
+        ? 'Microphone permission was blocked.'
+        : 'Could not capture your voice. Please try again.')
+      setIsListening(false)
+    }
+    recognition.onend = () => setIsListening(false)
+
+    recognition.start()
+  }
+
+  const stopListening = () => {
+    recognitionRef.current?.stop()
+    setIsListening(false)
+  }
 
   // ── STEP 1: Call /api/start to get first question ──
   const startInterview = async () => {
@@ -62,6 +158,7 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
   // ── STEP 2: Submit answer → call /api/answer ──
   const submitAnswer = async () => {
     if (!answer.trim()) return
+    stopListening()
     setLoading(true)
     setError('')
 
@@ -114,6 +211,8 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
       : 0
 
     const result = { totalScore, scores, allFeedback }
+    stopSpeaking()
+    stopListening()
     setLastResult(result)  // sends to App.jsx → shown on Dashboard
     setPhase('done')
   }
@@ -306,6 +405,7 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
             </button>
             <button
               onClick={() => {
+                stopSpeaking(); stopListening()
                 setPhase('start')
                 setQuestion(''); setQNum(0); setAnswer('')
                 setFeedback(null); setHistory([])
@@ -330,6 +430,7 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
       minHeight: '100vh',
       paddingTop: '64px',
       display: 'flex',
+      justifyContent: 'center',
       position: 'relative'
     }}>
 
@@ -342,12 +443,20 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
         maxWidth: chatOpen ? 'calc(100% - 360px)' : '100%',
         transition: 'max-width 0.3s ease',
         overflowY: 'auto',
-        paddingTop: '80px'
+        paddingTop: '80px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
       }}>
 
         {/* Progress indicator */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2rem'
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '2rem',
+          width: '100%',
+          maxWidth: '760px'
         }}>
           <div style={{ flex: 1, height: '4px', background: 'var(--surface2)', borderRadius: '99px', overflow: 'hidden' }}>
             <div style={{
@@ -364,7 +473,7 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
 
         {/* Score pills for answered questions */}
         {scores.length > 0 && (
-          <div style={{ display: 'flex', gap: '6px', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '1.5rem', width: '100%', maxWidth: '760px' }}>
             {scores.map((s, i) => (
               <div key={i} style={{
                 width: '36px', height: '36px',
@@ -389,7 +498,8 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
             borderRadius: 'var(--radius-lg)',
             marginBottom: '1.5rem',
             borderLeft: '3px solid var(--accent)',
-            maxWidth: '700px'
+            maxWidth: '760px',
+            width: '100%'
           }}
         >
           <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
@@ -400,18 +510,49 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '16px'
             }}>🤖</div>
-            <div>
+            <div style={{ flex: 1 }}>
               <p style={{ fontSize: '12px', color: 'var(--accent2)', fontWeight: '600', marginBottom: '8px', letterSpacing: '0.05em' }}>
                 AI INTERVIEWER · Q{questionNumber}
               </p>
               <p style={{ fontSize: '16px', color: 'var(--text)', lineHeight: '1.7' }}>
                 {currentQuestion}
               </p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '14px' }}>
+                {/* Voice button: question audio starts only after the user clicks this icon. */}
+                <button
+                  type="button"
+                  onClick={isSpeaking ? stopSpeaking : () => speakText(currentQuestion)}
+                  disabled={!canSpeak}
+                  className="outline-btn"
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    padding: 0,
+                    fontSize: '18px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: isSpeaking ? 'rgba(56,189,248,0.14)' : 'transparent',
+                    borderColor: isSpeaking ? 'var(--accent3)' : 'var(--border2)'
+                  }}
+                  title={isSpeaking ? 'Stop reading question' : 'Read question aloud'}
+                  aria-label={isSpeaking ? 'Stop reading question' : 'Read question aloud'}
+                >
+                  🔊
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* ── Feedback block (shown after answering) ── */}
+        {voiceError && (
+          <p style={{ color: 'var(--gold)', fontSize: '13px', marginBottom: '1rem', maxWidth: '760px', width: '100%' }}>
+            {voiceError}
+          </p>
+        )}
+
         {feedback && (
           <div
             className="animate-fade-up"
@@ -421,7 +562,8 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
               borderRadius: 'var(--radius-lg)',
               padding: '1.5rem',
               marginBottom: '1.5rem',
-              maxWidth: '700px'
+              maxWidth: '760px',
+              width: '100%'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
@@ -467,7 +609,7 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
 
         {/* ── Answer input (hidden when feedback shown) ── */}
         {!feedback && (
-          <div style={{ maxWidth: '700px' }}>
+          <div style={{ maxWidth: '760px', width: '100%' }}>
             <textarea
               value={answer}
               onChange={e => setAnswer(e.target.value)}
@@ -487,9 +629,51 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
               onBlur={e => e.target.style.borderColor = 'var(--border2)'}
             />
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+              {/* Recorder button: microphone-style control for speech-to-text dictation. */}
+              <button
+                type="button"
+                onClick={isListening ? stopListening : startListening}
+                disabled={!canListen || loading}
+                className={isListening ? 'glow-btn' : 'outline-btn'}
+                style={{
+                  width: '44px',
+                  height: '44px',
+                  padding: 0,
+                  borderRadius: '50%',
+                  fontSize: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  background: isListening ? 'var(--red)' : 'transparent',
+                  color: isListening ? '#fff' : 'var(--text)'
+                }}
+                title={isListening ? 'Stop recording answer' : 'Record answer'}
+                aria-label={isListening ? 'Stop recording answer' : 'Record answer'}
+              >
+                📢
+                {isListening && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '4px',
+                    right: '4px',
+                    width: '9px',
+                    height: '9px',
+                    borderRadius: '50%',
+                    background: '#fff',
+                    boxShadow: '0 0 0 3px rgba(255,255,255,0.22)'
+                  }} />
+                )}
+              </button>
+              <span style={{ color: isListening ? 'var(--green)' : 'var(--text3)', fontSize: '12px' }}>
+                {isListening ? 'Recording...' : 'Click the mic to dictate your answer.'}
+              </span>
+            </div>
+
             {error && <p style={{ color: 'var(--red)', fontSize: '13px', marginBottom: '8px' }}>{error}</p>}
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button
                 onClick={submitAnswer}
                 disabled={loading || !answer.trim()}
