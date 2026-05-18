@@ -218,36 +218,3 @@ input, textarea, select { font-family: var(--font-body); outline: none; }
   .glass { margin: 0 0.25rem; padding: 1rem !important; }
 }
 
-/* Desktop nav visible, mobile hidden */
-.desktop-nav { display: flex; }
-.mobile-menu-btn { display: none; }
-.mobile-menu { display: flex; }
-
-@media (max-width: 768px) {
-  .desktop-nav { display: none !important; }
-  .mobile-menu-btn { display: block !important; }
-
-  /* Dashboard grid — stack to single column */
-  [style*="gridTemplateColumns: '1fr 1fr'"] {
-    grid-template-columns: 1fr !important;
-  }
-  [style*="gridTemplateColumns: repeat(auto-fit, minmax(280px"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* History table — hide date column, just show role + score */
-  [style*="gridTemplateColumns: '1.4fr 1fr auto'"] {
-    grid-template-columns: 1fr auto !important;
-  }
-
-  /* Dashboard padding */
-  [style*="padding: '90px 2rem 4rem'"] {
-    padding: 80px 1rem 2rem !important;
-  }
-
-  /* Chart height on mobile */
-  canvas { height: 200px !important; }
-
-  /* Score progress SVG */
-  svg[viewBox] { height: 140px !important; }
-}
