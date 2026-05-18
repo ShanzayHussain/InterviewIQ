@@ -61,23 +61,72 @@ export default function Dashboard({ userProfile, navigate, lastResult, interview
   })
   const chartPath = chartPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
 
-  // ── Per-skill analytics ──
-  const getSkillAverage = (attempt, skill) => {
-    const related = (attempt?.allFeedback || [])
-      .filter(item => `${item.question || ''} ${item.feedback || ''}`.toLowerCase().includes(skill.toLowerCase()))
-    return related.length
-      ? related.reduce((sum, item) => sum + (Number(item.score) || 0), 0) / related.length
-      : null
+  // // ── Per-skill analytics ──
+  // const getSkillAverage = (attempt, skill) => {
+  //   const related = (attempt?.allFeedback || [])
+  //     .filter(item => `${item.question || ''} ${item.feedback || ''}`.toLowerCase().includes(skill.toLowerCase()))
+  //   return related.length
+  //     ? related.reduce((sum, item) => sum + (Number(item.score) || 0), 0) / related.length
+  //     : null
+  // }
+
+  // const skillAnalytics = (userProfile?.skills || [])
+  //   .map(skill => ({
+  //     skill,
+  //     previous: previousAttempt ? getSkillAverage(previousAttempt, skill) : null,
+  //     current:  currentAttempt  ? getSkillAverage(currentAttempt,  skill) : null,
+  //   }))
+  //   .filter(item => item.previous !== null || item.current !== null)
+  //   .slice(0, 6)
+// ── Per-skill analytics ──
+const getSkillAverage = (attempt, skill) => {
+  const allFeedback = attempt?.allFeedback || []
+
+  // Try matching skill name in question/feedback
+  const related = allFeedback.filter(item =>
+    `${item.question || ''} ${item.feedback || ''}`
+      .toLowerCase()
+      .includes(skill.toLowerCase())
+  )
+
+  // If matching questions found
+  if (related.length > 0) {
+    return (
+      related.reduce(
+        (sum, item) => sum + (Number(item.score) || 0),
+        0
+      ) / related.length
+    )
   }
 
-  const skillAnalytics = (userProfile?.skills || [])
-    .map(skill => ({
-      skill,
-      previous: previousAttempt ? getSkillAverage(previousAttempt, skill) : null,
-      current:  currentAttempt  ? getSkillAverage(currentAttempt,  skill) : null,
-    }))
-    .filter(item => item.previous !== null || item.current !== null)
-    .slice(0, 6)
+  // Fallback → use overall interview average
+  if (allFeedback.length > 0) {
+    return (
+      allFeedback.reduce(
+        (sum, item) => sum + (Number(item.score) || 0),
+        0
+      ) / allFeedback.length
+    )
+  }
+
+  return null
+}
+
+const skillAnalytics = (userProfile?.skills || [])
+  .map(skill => ({
+    skill,
+
+    previous: previousAttempt
+      ? getSkillAverage(previousAttempt, skill)
+      : null,
+
+    current: currentAttempt
+      ? getSkillAverage(currentAttempt, skill)
+      : null,
+  }))
+  .slice(0, 6)
+
+
 
   // ── Chart.js bar chart ──
   useEffect(() => {
