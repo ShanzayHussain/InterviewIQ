@@ -6,7 +6,7 @@ import axios from 'axios'
 // Flow: Start → AI asks Q → User answers → Feedback → Next Q or Stop → Score shown
 
 
-const API = ''  // empty string — Vite proxy handles it
+const API = import.meta.env.VITE_API_URL || ''
 
 export default function Interview({ userProfile, navigate, setLastResult }) {
 
