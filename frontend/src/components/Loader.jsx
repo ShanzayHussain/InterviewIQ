@@ -20,7 +20,7 @@ export default function Loader() {
         animation: 'spin 0.8s linear infinite'
       }} />
       <p style={{ color: 'var(--text3)', fontFamily: 'var(--font-head)', fontSize: '14px', letterSpacing: '0.1em' }}>
-        INITIALIZING
+        Initializing InterviewIQ...
       </p>
     </div>
   )

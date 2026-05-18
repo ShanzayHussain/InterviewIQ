@@ -1,124 +1,277 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabaseClient'
 
-// ── Pages (each page is its own file in /src/pages/) ──
-import Landing   from './pages/Landing'
-import Auth      from './pages/Auth'
+import Landing    from './pages/Landing'
+import Auth       from './pages/Auth'
 import Onboarding from './pages/Onboarding'
-import Dashboard from './pages/Dashboard'
-import Interview from './pages/Interview'
-import Profile   from './pages/Profile'
-
-// ── Shared components ──
-import Navbar    from './components/Navbar'
-import Loader    from './components/Loader'
+import Dashboard  from './pages/Dashboard'
+import Interview  from './pages/Interview'
+import Profile    from './pages/Profile'
+import Navbar     from './components/Navbar'
+import Loader     from './components/Loader'
 
 export default function App() {
-  // ── Auth state ──
-  const [session, setSession]   = useState(null)
-  const [loading, setLoading]   = useState(true)
+  const [session, setSession]                   = useState(null)
+  const [loading, setLoading]                   = useState(true)
+  const [page, setPage]                         = useState('landing')
+  const [userProfile, setUserProfile]           = useState(null)
+  const [lastResult, setLastResult]             = useState(null)
+  const [interviewHistory, setInterviewHistory] = useState([])
+  const [sessionCount, setSessionCount]         = useState(0)
 
-  // ── Current "page" — we use simple string routing (no react-router needed) ──
-  // Routes: 'landing' | 'auth' | 'onboarding' | 'dashboard' | 'interview' | 'profile'
-  const [page, setPage]         = useState('landing')
-
-  // ── User profile stored after onboarding ──
-  const [userProfile, setUserProfile] = useState(null)
-
-  // ── Interview results from last session (shown on dashboard) ──
-  const [lastResult, setLastResult] = useState(null)
-  const [sessionCount, setSessionCount] = useState(0)
-  const loadProfile = useCallback((userId) => {
-    const saved = localStorage.getItem(`profile_${userId}`)
-    const savedResult = localStorage.getItem(`lastResult_${userId}`)
-    const savedSessionCount = localStorage.getItem(`sessionCount_${userId}`)
-
-    if (savedResult) {
-      try {
-        setLastResult(JSON.parse(savedResult))
-      } catch {
-        localStorage.removeItem(`lastResult_${userId}`)
-        setLastResult(null)
+  // 
+  // Load sessions — cache first, then sync
+  // 
+  const loadSessions = async (userId) => {
+    // 1. Load from localStorage cache instantly
+    try {
+      const cached = localStorage.getItem(`sessions_${userId}`)
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        setInterviewHistory(parsed)
+        setSessionCount(parsed.length)
+        if (parsed.length > 0) setLastResult(parsed[0])
       }
-    } else {
-      setLastResult(null)
+    } catch {}
+
+    // 2. Sync from Supabase — always overwrites cache with fresh data
+    try {
+      const { data: sessions, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (sessions && !error) {
+        const mapped = sessions.map(s => ({
+          totalScore:  s.total_score,
+          scores:      s.scores || [],
+          role:        s.role,
+          position:    s.position,
+          completedAt: s.created_at,
+          allFeedback: (s.questions || []).map((q, i) => ({
+            question: q,
+            answer:   (s.answers   || [])[i] || '',
+            feedback: (s.feedbacks || [])[i] || '',
+            score:    (s.scores    || [])[i] || 0,
+          }))
+        }))
+        localStorage.setItem(`sessions_${userId}`, JSON.stringify(mapped))
+        setInterviewHistory(mapped)
+        setSessionCount(mapped.length)
+        if (mapped.length > 0) setLastResult(mapped[0])
+      }
+    } catch (err) {
+      console.error('loadSessions error:', err)
     }
+  }
 
-    setSessionCount(Number(savedSessionCount) || 0)
+  // 
+  // Load profile — cache first, Supabase always overwrites
+  // 
+  const loadProfile = useCallback(async (userId) => {
+    // 1. Show cached profile instantly so UI feels fast
+    let hasCache = false
+    try {
+      const cached = localStorage.getItem(`profile_${userId}`)
+      if (cached) {
+        setUserProfile(JSON.parse(cached))
+        hasCache = true
+      }
+    } catch {}
 
-    if (saved) {
-      try {
-        setUserProfile(JSON.parse(saved))
-        setPage('dashboard')
-      } catch {
-        localStorage.removeItem(`profile_${userId}`)
-        setUserProfile(null)
-        setLastResult(null)
-        setSessionCount(0)
+    // 2. Load cached sessions instantly too
+    try {
+      const cachedSessions = localStorage.getItem(`sessions_${userId}`)
+      if (cachedSessions) {
+        const parsed = JSON.parse(cachedSessions)
+        setInterviewHistory(parsed)
+        setSessionCount(parsed.length)
+        if (parsed.length > 0) setLastResult(parsed[0])
+      }
+    } catch {}
+
+    // 3. Go to dashboard immediately if cache exists
+    if (hasCache) setPage('dashboard')
+
+    // 4. ALWAYS fetch fresh profile from Supabase and overwrite
+    // This ensures edits from other browsers are always picked up
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (profile && !error) {
+        // Always overwrite local cache and state with Supabase data
+        localStorage.setItem(`profile_${userId}`, JSON.stringify(profile))
+        setUserProfile(profile)
+        if (!hasCache) setPage('dashboard')
+      } else if (!hasCache) {
         setPage('onboarding')
       }
-    } else {
-      setPage('onboarding')
+    } catch {
+      if (!hasCache) setPage('onboarding')
     }
+
+    // 5. Sync sessions from Supabase in background
+    await loadSessions(userId)
   }, [])
 
-  // ── Listen to Supabase auth changes ──
+  // 
+  // Auth listener
+  // 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-      if (session) {
-        // Check if user already completed onboarding
-        loadProfile(session.user.id)
-      }
-    })
+    const timeout = setTimeout(() => setLoading(false), 5000)
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
-      if (session) {
-        loadProfile(session.user.id)
-      } else {
-        // Logged out — go to landing
+
+      if (event === 'INITIAL_SESSION') {
+        if (session?.user?.id) {
+          loadProfile(session.user.id).finally(() => {
+            clearTimeout(timeout)
+            setLoading(false)
+          })
+        } else {
+          clearTimeout(timeout)
+          setPage('landing')
+          setLoading(false)
+        }
+        return
+      }
+
+      if (event === 'SIGNED_IN') {
+        if (session?.user?.id) {
+          loadProfile(session.user.id).finally(() => {
+            clearTimeout(timeout)
+            setLoading(false)
+          })
+        } else {
+          setLoading(false)
+        }
+        return
+      }
+
+      if (event === 'SIGNED_OUT') {
+        clearTimeout(timeout)
         setPage('landing')
         setUserProfile(null)
         setLastResult(null)
+        setInterviewHistory([])
         setSessionCount(0)
+        setLoading(false)
+        return
       }
+
+      setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => { clearTimeout(timeout); subscription.unsubscribe() }
   }, [loadProfile])
 
-  // ── Load profile from localStorage (or later from Supabase) ──
-  // ── Save profile after onboarding ──
-  const saveProfile = (profile) => {
+  // 
+  // Save profile after onboarding
+  //
+  const saveProfile = async (profile) => {
     const userId = session.user.id
-    localStorage.setItem(`profile_${userId}`, JSON.stringify(profile))
-    setUserProfile(profile)
+    const fullProfile = {
+      ...profile,
+      email:      session.user.email,
+      id:         userId,
+      updated_at: new Date().toISOString()
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(fullProfile)
+      if (error) console.error('saveProfile error:', error.message)
+      else console.log('✅ Profile saved to Supabase')
+    } catch (err) {
+      console.error('saveProfile failed:', err)
+    }
+
+    localStorage.setItem(`profile_${userId}`, JSON.stringify(fullProfile))
+    setUserProfile(fullProfile)
     setPage('dashboard')
   }
 
-  // ── Navigation helper passed to all pages ──
+  // 
+  // Save interview result
+  // 
+  const saveInterviewResult = async (result) => {
+    const userId = session.user.id
+    const resultWithMeta = {
+      ...result,
+      role:        userProfile?.role,
+      position:    userProfile?.position,
+      completedAt: new Date().toISOString()
+    }
+
+    try {
+      const { error } = await supabase
+        .from('sessions')
+        .insert({
+          user_id:     userId,
+          role:        userProfile?.role,
+          position:    userProfile?.position,
+          total_score: result.totalScore,
+          scores:      result.scores || [],
+          questions:   (result.allFeedback || []).map(f => f.question),
+          answers:     (result.allFeedback || []).map(f => f.answer),
+          feedbacks:   (result.allFeedback || []).map(f => f.feedback),
+        })
+      if (error) console.error('saveSession error:', error.message)
+      else console.log('✅ Session saved to Supabase')
+    } catch (err) {
+      console.error('saveSession failed:', err)
+    }
+
+    const nextHistory = [resultWithMeta, ...interviewHistory]
+    setLastResult(resultWithMeta)
+    setInterviewHistory(nextHistory)
+    setSessionCount(prev => prev + 1)
+    localStorage.setItem(`sessions_${userId}`, JSON.stringify(nextHistory))
+  }
+
+  // 
+  // Update profile from Profile page
+  // Always saves updated_at so other browsers know to refresh
+  // 
+  const updateProfile = async (updated) => {
+    const userId = session.user.id
+    const updatedWithTime = { ...updated, updated_at: new Date().toISOString() }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name:       updated.name,
+          role:       updated.role,
+          skills:     updated.skills,
+          position:   updated.position,
+          updated_at: updatedWithTime.updated_at,
+        })
+        .eq('id', userId)
+      if (error) console.error('updateProfile error:', error.message)
+      else console.log('✅ Profile updated in Supabase')
+    } catch (err) {
+      console.error('updateProfile failed:', err)
+    }
+
+    localStorage.setItem(`profile_${userId}`, JSON.stringify(updatedWithTime))
+    setUserProfile(updatedWithTime)
+  }
+
   const navigate = (target) => setPage(target)
 
-  const saveInterviewResult = (result) => {
-    const userId = session.user.id
-    const nextCount = sessionCount + 1
-    const resultWithDate = { ...result, completedAt: new Date().toISOString() }
-
-    localStorage.setItem(`lastResult_${userId}`, JSON.stringify(resultWithDate))
-    localStorage.setItem(`sessionCount_${userId}`, String(nextCount))
-    setLastResult(resultWithDate)
-    setSessionCount(nextCount)
-  }
-  // ── Show full-screen loader while checking auth ──
   if (loading) return <Loader />
 
-  // ── Render the right page ──
   return (
     <div className="noise">
-      {/* Navbar only shown when user is logged in and past onboarding */}
-      {session && page !== 'onboarding' && page !== 'auth' && (
+      {session && page !== 'onboarding' && page !== 'auth' && page !== 'landing' && (
         <Navbar
           session={session}
           userProfile={userProfile}
@@ -127,37 +280,20 @@ export default function App() {
         />
       )}
 
-      {/* ── Route: Landing page (/) ── */}
-      {page === 'landing' && (
-        <Landing navigate={navigate} session={session} />
-      )}
-
-      {/* ── Route: Auth page (/auth) — login + signup ── */}
-      {page === 'auth' && (
-        <Auth navigate={navigate} />
-      )}
-
-      {/* ── Route: Onboarding (/onboarding) — role, skills, position ── */}
-      {page === 'onboarding' && session && (
-        <Onboarding
-          session={session}
-          saveProfile={saveProfile}
-        />
-      )}
-
-      {/* ── Route: Dashboard (/dashboard) — home after login ── */}
-      {page === 'dashboard' && session && (
+      {page === 'landing'    && <Landing    navigate={navigate} session={session} />}
+      {page === 'auth'       && <Auth       navigate={navigate} />}
+      {page === 'onboarding' && session && <Onboarding session={session} saveProfile={saveProfile} />}
+      {page === 'dashboard'  && session && (
         <Dashboard
           session={session}
           userProfile={userProfile}
           navigate={navigate}
           lastResult={lastResult}
+          interviewHistory={interviewHistory}
           sessionCount={sessionCount}
         />
       )}
-
-      {/* ── Route: Interview (/interview) — the actual mock interview ── */}
-      {page === 'interview' && session && (
+      {page === 'interview'  && session && (
         <Interview
           session={session}
           userProfile={userProfile}
@@ -165,14 +301,12 @@ export default function App() {
           setLastResult={saveInterviewResult}
         />
       )}
-
-      {/* ── Route: Profile (/profile) — view/edit user info ── */}
-      {page === 'profile' && session && (
+      {page === 'profile'    && session && (
         <Profile
           session={session}
           userProfile={userProfile}
           navigate={navigate}
-          setUserProfile={setUserProfile}    
+          setUserProfile={updateProfile}
         />
       )}
     </div>

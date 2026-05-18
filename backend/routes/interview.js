@@ -53,12 +53,12 @@ const styles = [
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)]
 
 
-// ════════════════════════════════════════
+// 
 //  POST /api/start
 //  Called when user clicks Begin Interview
 //  Receives: { role, skills, position }
 //  Returns:  { question }
-// ════════════════════════════════════════
+// 
 router.post('/start', async (req, res) => {
   const { role, skills, position } = req.body
 
@@ -108,12 +108,12 @@ Rules:
 })
 
 
-// ════════════════════════════════════════
+// 
 //  POST /api/answer
 //  Called when user submits an answer
 //  Receives: { role, skills, position, history, answer, questionNumber }
 //  Returns:  { feedback, score, nextQuestion, summary }
-// ════════════════════════════════════════
+//
 router.post('/answer', async (req, res) => {
   const { role, skills, position, history, answer, questionNumber } = req.body
 
@@ -151,6 +151,7 @@ Scoring guide:
 - 5-6: Partial answer, missing some important aspects
 - 3-4: Weak answer, significant gaps or inaccuracies
 - 1-2: Incorrect or very incomplete answer
+- SCORE 0 MANDATORY: If the answer is a single character, random letters, gibberish, or clearly not a real attempt (e.g. "m", "asd", "idk", "..."), you MUST give a score of 0. No exceptions.
 
 You MUST respond with ONLY a valid JSON object.
 No markdown, no backticks, no extra text before or after.

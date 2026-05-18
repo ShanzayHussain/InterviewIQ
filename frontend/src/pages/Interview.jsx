@@ -240,9 +240,9 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
   // ── Average score ──
   const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
 
-  // ──────────────────────────────────────
+  // 
   //  RENDER: START screen
-  // ──────────────────────────────────────
+  // 
   if (phase === 'start') {
     return (
       <div style={{
@@ -320,9 +320,9 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
     )
   }
 
-  // ──────────────────────────────────────
+  // 
   //  RENDER: DONE screen
-  // ──────────────────────────────────────
+  // 
   if (phase === 'done') {
     const stars = Math.round((avgScore / 10) * 5)
     return (
@@ -422,9 +422,9 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
     )
   }
 
-  // ──────────────────────────────────────
+  // 
   //  RENDER: QUESTIONING phase (main interview)
-  // ──────────────────────────────────────
+  // 
   return (
     <div style={{
       minHeight: '100vh',
@@ -434,9 +434,9 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
       position: 'relative'
     }}>
 
-      {/* ════════════════════════════════
+      {/*
           LEFT: Interview panel
-      ════════════════════════════════ */}
+      */}
       <div style={{
         flex: 1,
         padding: '2rem',
@@ -696,9 +696,9 @@ export default function Interview({ userProfile, navigate, setLastResult }) {
         <div ref={interviewEndRef} />
       </div>
 
-      {/* ════════════════════════════════
+      {/* 
           RIGHT: AI Chatbot panel
-      ════════════════════════════════ */}
+   */}
 
       {/* Chatbot toggle button */}
       <button

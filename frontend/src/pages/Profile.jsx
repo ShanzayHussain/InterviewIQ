@@ -1,34 +1,38 @@
 import { useState } from 'react'
-// import { supabase } from '../supabaseClient'
 
-const ROLES = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'UI/UX Designer']
-const SKILLS = ['React.js', 'Node.js', 'Express.js', 'Next.js', 'JavaScript', 'HTML', 'CSS', 'MySQL', 'PostgreSQL', 'Figma', 'Canva', 'REST APIs', 'GitHub']
+const ROLES     = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'UI/UX Designer']
+const SKILLS    = ['React.js', 'Node.js', 'Express.js', 'Next.js', 'JavaScript', 'HTML', 'CSS', 'MySQL', 'PostgreSQL', 'Figma', 'Canva', 'REST APIs', 'GitHub']
 const POSITIONS = ['Internship', 'Full Time Job']
 
+// ── Profile page ──
+
 export default function Profile({ session, userProfile, navigate, setUserProfile }) {
-  const [editing, setEditing]       = useState(false)
-  const [name, setName]             = useState(userProfile?.name || '')
-  const [role, setRole]             = useState(userProfile?.role || '')
-  const [skills, setSkills]         = useState(userProfile?.skills || [])
-  const [position, setPosition]     = useState(userProfile?.position || '')
-  const [saved, setSaved]           = useState(false)
+  const [editing, setEditing]   = useState(false)
+  const [name, setName]         = useState(userProfile?.name || '')
+  const [role, setRole]         = useState(userProfile?.role || '')
+  const [skills, setSkills]     = useState(userProfile?.skills || [])
+  const [position, setPosition] = useState(userProfile?.position || '')
+  const [saved, setSaved]       = useState(false)
+  const [saving, setSaving]     = useState(false)
 
   const toggleSkill = (skill) => {
-    setSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill])
+    setSkills(prev =>
+      prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]
+    )
   }
 
-  const handleSave = () => {
+  // ── Save to Supabase via App.jsx updateProfile ──
+  const handleSave = async () => {
+    setSaving(true)
     const updated = { ...userProfile, name, role, skills, position }
-    // Save to localStorage using user ID (same key as onboarding)
-    localStorage.setItem(`profile_${session.user.id}`, JSON.stringify(updated))
-    setUserProfile(updated)
+    await setUserProfile(updated) // this calls App.jsx's updateProfile → Supabase
+    setSaving(false)
     setEditing(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
   }
 
   const handleCancel = () => {
-    // Reset to original values
     setName(userProfile?.name || '')
     setRole(userProfile?.role || '')
     setSkills(userProfile?.skills || [])
@@ -52,6 +56,7 @@ export default function Profile({ session, userProfile, navigate, setUserProfile
           onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
           onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
         >← Dashboard</button>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-head)', fontWeight: '800', fontSize: '2rem', marginBottom: '0.4rem' }}>Your Profile</h1>
@@ -64,20 +69,23 @@ export default function Profile({ session, userProfile, navigate, setUserProfile
           ) : (
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={handleCancel} className="outline-btn" style={{ padding: '9px 16px', fontSize: '13px' }}>Cancel</button>
-              <button onClick={handleSave} className="glow-btn" style={{ padding: '9px 20px', fontSize: '13px' }}>Save →</button>
+              <button onClick={handleSave} disabled={saving} className="glow-btn" style={{ padding: '9px 20px', fontSize: '13px' }}>
+                {saving ? '⏳ Saving...' : 'Save →'}
+              </button>
             </div>
           )}
         </div>
+
         {saved && (
           <div style={{
             marginTop: '12px', padding: '10px 14px',
             background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
             borderRadius: 'var(--radius-sm)', fontSize: '13px', color: 'var(--green)'
-          }}>✓ Profile saved successfully</div>
+          }}>✓ Profile saved to your account</div>
         )}
       </div>
 
-      {/* Avatar + locked fields */}
+      {/* Avatar + locked info */}
       <div className="glass" style={{ padding: '1.5rem 2rem', borderRadius: 'var(--radius-lg)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
         <div style={{
           width: '64px', height: '64px', flexShrink: 0,
@@ -97,10 +105,8 @@ export default function Profile({ session, userProfile, navigate, setUserProfile
         </div>
       </div>
 
-      {/* Editable fields */}
+      {/* Name + Role */}
       <div className="glass" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', marginBottom: '1rem' }}>
-
-        {/* Name */}
         <div style={{ padding: '1.1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
           <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Full name</p>
           {editing ? (
@@ -121,24 +127,18 @@ export default function Profile({ session, userProfile, navigate, setUserProfile
           )}
         </div>
 
-        {/* Role */}
         <div style={{ padding: '1.1rem 1.5rem' }}>
           <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Role</p>
           {editing ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {ROLES.map(r => (
-                <button
-                  key={r}
-                  onClick={() => setRole(r)}
-                  style={{
-                    padding: '7px 14px',
-                    background: role === r ? 'rgba(108,99,255,0.2)' : 'var(--surface)',
-                    border: `1px solid ${role === r ? 'var(--accent)' : 'var(--border)'}`,
-                    borderRadius: '99px', fontSize: '13px', fontWeight: '500',
-                    color: role === r ? 'var(--accent2)' : 'var(--text2)', cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                >{r}</button>
+                <button key={r} onClick={() => setRole(r)} style={{
+                  padding: '7px 14px',
+                  background: role === r ? 'rgba(108,99,255,0.2)' : 'var(--surface)',
+                  border: `1px solid ${role === r ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: '99px', fontSize: '13px', fontWeight: '500',
+                  color: role === r ? 'var(--accent2)' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.15s'
+                }}>{r}</button>
               ))}
             </div>
           ) : (
@@ -161,14 +161,11 @@ export default function Profile({ session, userProfile, navigate, setUserProfile
                 onClick={() => editing && toggleSkill(skill)}
                 style={{
                   padding: '5px 13px',
-                  background: editing
-                    ? isSelected ? 'rgba(108,99,255,0.2)' : 'var(--surface)'
-                    : 'rgba(108,99,255,0.1)',
+                  background: editing ? isSelected ? 'rgba(108,99,255,0.2)' : 'var(--surface)' : 'rgba(108,99,255,0.1)',
                   border: `1px solid ${editing ? isSelected ? 'var(--accent)' : 'var(--border)' : 'rgba(108,99,255,0.25)'}`,
                   borderRadius: '99px', fontSize: '13px', fontWeight: '500',
                   color: editing ? isSelected ? 'var(--accent2)' : 'var(--text2)' : 'var(--accent2)',
-                  cursor: editing ? 'pointer' : 'default',
-                  transition: 'all 0.15s'
+                  cursor: editing ? 'pointer' : 'default', transition: 'all 0.15s'
                 }}
               >
                 {editing && isSelected && '✓ '}{skill}
@@ -182,20 +179,15 @@ export default function Profile({ session, userProfile, navigate, setUserProfile
       <div className="glass" style={{ padding: '1.25rem 1.5rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem' }}>
         <p style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>Position</p>
         {editing ? (
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             {POSITIONS.map(p => (
-              <button
-                key={p}
-                onClick={() => setPosition(p)}
-                style={{
-                  flex: 1, padding: '10px',
-                  background: position === p ? 'rgba(108,99,255,0.2)' : 'var(--surface)',
-                  border: `1px solid ${position === p ? 'var(--accent)' : 'var(--border)'}`,
-                  borderRadius: 'var(--radius)', fontSize: '14px', fontWeight: '500',
-                  color: position === p ? 'var(--accent2)' : 'var(--text2)', cursor: 'pointer',
-                  transition: 'all 0.15s'
-                }}
-              >{p}</button>
+              <button key={p} onClick={() => setPosition(p)} style={{
+                flex: 1, padding: '10px',
+                background: position === p ? 'rgba(108,99,255,0.2)' : 'var(--surface)',
+                border: `1px solid ${position === p ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 'var(--radius)', fontSize: '14px', fontWeight: '500',
+                color: position === p ? 'var(--accent2)' : 'var(--text2)', cursor: 'pointer', transition: 'all 0.15s'
+              }}>{p}</button>
             ))}
           </div>
         ) : (
@@ -203,7 +195,7 @@ export default function Profile({ session, userProfile, navigate, setUserProfile
         )}
       </div>
 
-      {/* Bottom actions */}
+      {/* Actions */}
       <div style={{ display: 'flex', gap: '10px' }}>
         <button onClick={() => navigate('interview')} className="glow-btn" style={{ flex: 1, padding: '13px', fontSize: '14px' }}>
           ▶ Start Interview

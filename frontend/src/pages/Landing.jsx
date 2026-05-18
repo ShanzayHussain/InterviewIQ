@@ -96,7 +96,7 @@ export default function Landing({ navigate, session }) {
             maxWidth: '820px',
             marginBottom: '1.5rem',
             animation: 'fadeUp 0.6s ease 0.1s both forwards',
-            // opacity: 0
+     
           }}
         >
           Ace Your Next{' '}
@@ -115,7 +115,7 @@ export default function Landing({ navigate, session }) {
           lineHeight: '1.7',
           marginBottom: '2.5rem',
           animation: 'fadeUp 0.6s ease 0.2s both forwards',
-          // opacity: 0
+      
         }}>
           Practice real interview questions tailored to your role and skills.
           Get instant AI feedback, track your progress, and land the job.
@@ -124,7 +124,7 @@ export default function Landing({ navigate, session }) {
         <div style={{
           display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center',
           animation: 'fadeUp 0.6s ease 0.3s both forwards',
-          // opacity: 0
+          
         }}>
           <button
             onClick={() => navigate(isLoggedIn ? 'dashboard' : 'auth')}
