@@ -1,4 +1,4 @@
-<img width="1869" height="782" alt="image" src="https://github.com/user-attachments/assets/2bdee755-a0ce-43b1-8176-18a037502a09" /># 🚀 InterviewIQ
+# 🚀 InterviewIQ
 
 > AI-powered mock interview platform for developers — practice technical interviews, receive instant AI feedback, and track your improvement over time.
 
@@ -93,7 +93,8 @@ Creates a more realistic interview experience.
 
 Modern landing page introducing InterviewIQ and its AI-powered interview experience.
 
-<img width="512" height="604" alt="image" src="https://github.com/user-attachments/assets/3651ad1d-7321-4c98-99dd-44108aa74c94" />
+<img width="1843" height="798" alt="image" src="https://github.com/user-attachments/assets/23aaea54-9cfc-42e0-943c-e1fd5e014625" />
+
 
 ---
 
@@ -101,7 +102,8 @@ Modern landing page introducing InterviewIQ and its AI-powered interview experie
 
 User login and signup system powered by Supabase Authentication.
 
-<img width="1641" height="807" alt="image" src="https://github.com/user-attachments/assets/2ce0f507-637d-46b4-9da0-bf4ffce6781e" />
+<img width="458" height="578" alt="image" src="https://github.com/user-attachments/assets/aff2e306-2985-456b-8a2c-9589a5f021e8" />
+
 
 ---
 
@@ -114,7 +116,8 @@ Analytics dashboard showing:
 * Score progress graphs
 * Session statistics
 
-<img width="724" height="756" alt="image" src="https://github.com/user-attachments/assets/cd216e79-6991-44b5-a9d4-9f12fde5ad13" />
+<img width="1875" height="818" alt="image" src="https://github.com/user-attachments/assets/a2342041-b7b4-4140-afba-5e55002b6af6" />
+
 
 ---
 
@@ -126,7 +129,8 @@ Profile management page where users can:
 * Select skills
 * Edit interview preferences
 
-<img width="1356" height="782" alt="image" src="https://github.com/user-attachments/assets/5ea7f0c0-1c83-4bd7-a768-a3b3fb8f0f95" />
+<img width="717" height="751" alt="image" src="https://github.com/user-attachments/assets/e412972e-7a4e-4016-945d-1ed4d81976d9" />
+
 
 ---
 
@@ -140,7 +144,10 @@ Interactive AI interview interface featuring:
 * Speech-to-text support
 * Text-to-speech functionality
 
-<img width="639" height="732" alt="image" src="https://github.com/user-attachments/assets/bf7480aa-0040-4a66-b7a9-341294ee094c" />
+<img width="526" height="533" alt="image" src="https://github.com/user-attachments/assets/f9fe9388-0173-4c97-a3d8-7fcbb62acd6b" />
+
+<img width="1366" height="774" alt="image" src="https://github.com/user-attachments/assets/082f535c-401a-4d54-974f-4067fb266337" />
+
 
 ---
 
@@ -153,7 +160,8 @@ Detailed results page showing:
 * Strengths & weaknesses
 * Improvement suggestions
 
-![Uploading image.png…]()
+<img width="638" height="729" alt="image" src="https://github.com/user-attachments/assets/fbb6cae7-5773-4bf8-bc42-4e41ebe5b380" />
+
 
 ---
 
