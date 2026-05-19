@@ -218,3 +218,34 @@ input, textarea, select { font-family: var(--font-body); outline: none; }
   .glass { margin: 0 0.25rem; padding: 1rem !important; }
 }
 
+/* ── Navbar mobile fix ── */
+.desktop-nav { display: flex; }
+.mobile-menu-btn { display: none; }
+
+@media (max-width: 768px) {
+  .desktop-nav { display: none !important; }
+  .mobile-menu-btn { display: block !important; }
+
+  /* Dashboard — stack Start Interview + Last Session cards vertically */
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dashboard — stack analytics charts vertically */
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Dashboard padding fix */
+  .dashboard-root {
+    padding: 80px 1rem 2rem !important;
+  }
+
+  /* History table — 3 columns too tight, simplify */
+  .history-row {
+    grid-template-columns: 1fr auto !important;
+  }
+  .history-row .hide-mobile {
+    display: none !important;
+  }
+}

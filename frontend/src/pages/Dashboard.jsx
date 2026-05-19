@@ -23,14 +23,9 @@ export default function Dashboard({ userProfile, navigate, lastResult, interview
     )
   }
 
-  // ── interviewHistory from Supabase comes newest-first
-  //    For charts we need oldest-first, so reverse it
   const savedAttempts = Array.isArray(interviewHistory) ? interviewHistory : []
-
-  // chronological = oldest → newest (for charts and progress)
   const chronological = [...savedAttempts].reverse()
 
-  // Make sure lastResult isn't duplicated
   const hasLastResult = lastResult && chronological.some(a =>
     a.completedAt && a.completedAt === lastResult.completedAt
   )
@@ -40,12 +35,10 @@ export default function Dashboard({ userProfile, navigate, lastResult, interview
     ? [...chronological, lastResult]
     : chronological
 
-  // currentAttempt = most recent = last in chronological array
   const currentAttempt  = attempts.length > 0 ? attempts[attempts.length - 1] : null
-  // previousAttempt = second most recent
   const previousAttempt = attempts.length > 1 ? attempts[attempts.length - 2] : null
 
-  // ── Score progress chart (oldest → newest left → right) ──
+  // ── Score progress chart ──
   const chartWidth   = 520
   const chartHeight  = 180
   const chartPadding = 24
@@ -61,81 +54,33 @@ export default function Dashboard({ userProfile, navigate, lastResult, interview
   })
   const chartPath = chartPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
 
-  // // ── Per-skill analytics ──
-  // const getSkillAverage = (attempt, skill) => {
-  //   const related = (attempt?.allFeedback || [])
-  //     .filter(item => `${item.question || ''} ${item.feedback || ''}`.toLowerCase().includes(skill.toLowerCase()))
-  //   return related.length
-  //     ? related.reduce((sum, item) => sum + (Number(item.score) || 0), 0) / related.length
-  //     : null
-  // }
-
-  // const skillAnalytics = (userProfile?.skills || [])
-  //   .map(skill => ({
-  //     skill,
-  //     previous: previousAttempt ? getSkillAverage(previousAttempt, skill) : null,
-  //     current:  currentAttempt  ? getSkillAverage(currentAttempt,  skill) : null,
-  //   }))
-  //   .filter(item => item.previous !== null || item.current !== null)
-  //   .slice(0, 6)
-// ── Per-skill analytics ──
-const getSkillAverage = (attempt, skill) => {
-  const allFeedback = attempt?.allFeedback || []
-
-  // Try matching skill name in question/feedback
-  const related = allFeedback.filter(item =>
-    `${item.question || ''} ${item.feedback || ''}`
-      .toLowerCase()
-      .includes(skill.toLowerCase())
-  )
-
-  // If matching questions found
-  if (related.length > 0) {
-    return (
-      related.reduce(
-        (sum, item) => sum + (Number(item.score) || 0),
-        0
-      ) / related.length
+  // ── Per-skill analytics ──
+  const getSkillAverage = (attempt, skill) => {
+    const allFeedback = attempt?.allFeedback || []
+    const related = allFeedback.filter(item =>
+      `${item.question || ''} ${item.feedback || ''}`.toLowerCase().includes(skill.toLowerCase())
     )
+    if (related.length > 0) {
+      return related.reduce((sum, item) => sum + (Number(item.score) || 0), 0) / related.length
+    }
+    if (allFeedback.length > 0) {
+      return allFeedback.reduce((sum, item) => sum + (Number(item.score) || 0), 0) / allFeedback.length
+    }
+    return null
   }
 
-  // Fallback → use overall interview average
-  if (allFeedback.length > 0) {
-    return (
-      allFeedback.reduce(
-        (sum, item) => sum + (Number(item.score) || 0),
-        0
-      ) / allFeedback.length
-    )
-  }
-
-  return null
-}
-
-const skillAnalytics = (userProfile?.skills || [])
-  .map(skill => ({
-    skill,
-
-    previous: previousAttempt
-      ? getSkillAverage(previousAttempt, skill)
-      : null,
-
-    current: currentAttempt
-      ? getSkillAverage(currentAttempt, skill)
-      : null,
-  }))
-  .slice(0, 6)
-
-
+  const skillAnalytics = (userProfile?.skills || [])
+    .map(skill => ({
+      skill,
+      previous: previousAttempt ? getSkillAverage(previousAttempt, skill) : null,
+      current:  currentAttempt  ? getSkillAverage(currentAttempt,  skill) : null,
+    }))
+    .slice(0, 6)
 
   // ── Chart.js bar chart ──
   useEffect(() => {
     if (!skillAnalytics.length || !chartCanvasRef.current) return
-
-    if (chartRef.current) {
-      chartRef.current.destroy()
-      chartRef.current = null
-    }
+    if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null }
 
     chartRef.current = new Chart(chartCanvasRef.current, {
       type: 'bar',
@@ -147,20 +92,16 @@ const skillAnalytics = (userProfile?.skills || [])
             data: skillAnalytics.map(s => s.previous ?? 0),
             backgroundColor: 'rgba(90,90,112,0.45)',
             borderColor: 'rgba(160,155,200,0.7)',
-            borderWidth: 1.5,
-            borderRadius: 5,
-            barPercentage: 0.65,
-            categoryPercentage: 0.75,
+            borderWidth: 1.5, borderRadius: 5,
+            barPercentage: 0.65, categoryPercentage: 0.75,
           },
           {
             label: 'Current',
             data: skillAnalytics.map(s => s.current ?? 0),
             backgroundColor: 'rgba(56,189,248,0.45)',
             borderColor: 'rgba(56,189,248,0.85)',
-            borderWidth: 1.5,
-            borderRadius: 5,
-            barPercentage: 0.65,
-            categoryPercentage: 0.75,
+            borderWidth: 1.5, borderRadius: 5,
+            barPercentage: 0.65, categoryPercentage: 0.75,
           },
         ],
       },
@@ -171,39 +112,30 @@ const skillAnalytics = (userProfile?.skills || [])
           legend: { display: false },
           tooltip: {
             backgroundColor: 'rgba(20,20,35,0.92)',
-            titleColor: '#e2e8f0',
-            bodyColor: '#94a3b8',
-            borderColor: 'rgba(255,255,255,0.08)',
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} / 10`
-            }
+            titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+            borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, padding: 10,
+            callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} / 10` }
           }
         },
         scales: {
           x: {
             ticks: { color: 'rgba(148,163,184,0.8)', font: { size: 11 }, autoSkip: false },
-            grid: { display: false },
-            border: { display: false },
+            grid: { display: false }, border: { display: false },
           },
           y: {
             min: 0, max: 10,
             ticks: { color: 'rgba(148,163,184,0.6)', font: { size: 11 }, stepSize: 2, callback: v => v },
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            border: { display: false },
+            grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false },
           },
         },
       },
     })
 
-    return () => {
-      if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null }
-    }
+    return () => { if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null } }
   }, [skillAnalytics.map(s => `${s.skill}:${s.previous}:${s.current}`).join('|')])
 
   return (
-    <div style={{
+    <div className="dashboard-root" style={{
       minHeight: '100vh',
       paddingTop: '80px',
       padding: '90px 2rem 4rem',
@@ -219,16 +151,13 @@ const skillAnalytics = (userProfile?.skills || [])
           Good to have you back
         </p>
         <h1 style={{
-          fontFamily: 'var(--font-head)',
-          fontWeight: '800',
+          fontFamily: 'var(--font-head)', fontWeight: '800',
           fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
           background: 'linear-gradient(135deg, var(--text), var(--accent2))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           marginBottom: '0.5rem',
         }}>
           Hey, {userProfile?.name || userProfile?.username}
-          {/* <span style={{ WebkitTextFillColor: 'initial', background: 'none' }}>⚡</span> */}
         </h1>
         <p style={{ color: 'var(--text2)', fontSize: '16px' }}>
           Ready to practice your{' '}
@@ -239,20 +168,20 @@ const skillAnalytics = (userProfile?.skills || [])
       {/* ── Stats row ── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
         gap: '12px',
         marginBottom: '2rem',
       }}>
         {[
-          { label: 'Role',     value: userProfile?.role || '—',                       icon: '🎯' },
-          { label: 'Position', value: userProfile?.position || '—',                    icon: '💼' },
-          { label: 'Skills',   value: `${userProfile?.skills?.length || 0} selected`,  icon: '🛠️' },
-          { label: 'Sessions', value: String(sessionCount || 0),                        icon: '📊' },
+          { label: 'Role',     value: userProfile?.role || '—',                      icon: '🎯' },
+          { label: 'Position', value: userProfile?.position || '—',                   icon: '💼' },
+          { label: 'Skills',   value: `${userProfile?.skills?.length || 0} selected`, icon: '🛠️' },
+          { label: 'Sessions', value: String(sessionCount || 0),                       icon: '📊' },
         ].map(({ label, value, icon }) => (
-          <div
-            key={label}
-            className="glass"
-            style={{ padding: '1.25rem', borderRadius: 'var(--radius-lg)', transition: 'transform 0.2s, border-color 0.2s' }}
+          <div key={label} className="glass" style={{
+            padding: '1.25rem', borderRadius: 'var(--radius-lg)',
+            transition: 'transform 0.2s, border-color 0.2s'
+          }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'var(--border2)' }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';    e.currentTarget.style.borderColor = 'var(--border)'  }}
           >
@@ -268,7 +197,7 @@ const skillAnalytics = (userProfile?.skills || [])
       </div>
 
       {/* ── Start interview + last result ── */}
-      <div style={{
+      <div className="dashboard-main-grid" style={{
         display: 'grid',
         gridTemplateColumns: lastResult ? '1fr 1fr' : '1fr',
         gap: '16px',
@@ -354,8 +283,7 @@ const skillAnalytics = (userProfile?.skills || [])
                   {lastResult.scores.map((score, i) => (
                     <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                       <div style={{
-                        width: '100%',
-                        height: `${(score / 10) * 40}px`,
+                        width: '100%', height: `${(score / 10) * 40}px`,
                         background: score >= 7
                           ? 'linear-gradient(180deg, var(--green), #34d399)'
                           : score >= 5
@@ -381,9 +309,13 @@ const skillAnalytics = (userProfile?.skills || [])
       {/* ── Analytics section ── */}
       {attempts.length > 0 && (
         <div style={{ display: 'grid', gap: '16px', marginBottom: '2rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+          <div className="dashboard-charts-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '16px'
+          }}>
 
-            {/* Score progress line chart — oldest left, newest right */}
+            {/* Score progress line chart */}
             <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}>
               <p style={{ fontSize: '12px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
                 Score progress
@@ -410,7 +342,6 @@ const skillAnalytics = (userProfile?.skills || [])
                   ))}
                 </svg>
 
-                {/* Previous = second-last in chronological, Present = last */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   {[
                     { label: 'Previous', score: previousAttempt ? Number(previousAttempt.totalScore) || 0 : null },
@@ -476,30 +407,28 @@ const skillAnalytics = (userProfile?.skills || [])
             </div>
           </div>
 
-          {/* ── History table: newest on top, no reverse needed ── */}
+          {/* ── History table ── */}
           <div className="glass" style={{ padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}>
             <p style={{ fontSize: '12px', color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
               Previous interview attempts
             </p>
-            <div style={{
+            <div className="history-row" style={{
               display: 'grid', gridTemplateColumns: '1.4fr 1fr auto',
               gap: '10px', padding: '0 14px 8px',
               color: 'var(--text3)', fontSize: '11px',
               textTransform: 'uppercase', letterSpacing: '0.08em',
             }}>
-              <span>Date</span><span>Role</span><span style={{ textAlign: 'right' }}>Score</span>
+              <span className="hide-mobile">Date</span><span>Role</span><span style={{ textAlign: 'right' }}>Score</span>
             </div>
             <div style={{ display: 'grid', gap: '8px' }}>
-              {/* newest-first: interviewHistory is already newest-first from Supabase,
-                  but attempts is chronological so we reverse it back for display */}
               {[...attempts].reverse().map((attempt, i) => (
-                <div key={attempt.completedAt || i} style={{
+                <div key={attempt.completedAt || i} className="history-row" style={{
                   display: 'grid', gridTemplateColumns: '1.4fr 1fr auto',
                   gap: '10px', alignItems: 'center',
                   padding: '12px 14px', borderRadius: 'var(--radius)',
                   background: 'var(--surface)', border: '1px solid var(--border)',
                 }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text2)' }}>
+                  <span className="hide-mobile" style={{ fontSize: '13px', color: 'var(--text2)' }}>
                     {attempt.completedAt ? new Date(attempt.completedAt).toLocaleString() : 'Recent session'}
                   </span>
                   <span style={{ fontSize: '13px', color: 'var(--text)', fontWeight: '600' }}>
@@ -539,4 +468,3 @@ const skillAnalytics = (userProfile?.skills || [])
     </div>
   )
 }
-
