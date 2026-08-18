@@ -6,7 +6,7 @@ const Groq    = require('groq-sdk')
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 // ── Model to use ──
-const MODEL = 'llama-3.3-70b-versatile'
+const MODEL = 'GPT OSS 120B'
 
 // ── Random topic pools per role ──
 const topics = {
