@@ -6,7 +6,7 @@ const Groq    = require('groq-sdk')
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 // ── Model to use ──
-const MODEL = 'GPT OSS 120B'
+const MODEL = 'openai/gpt-oss-120b'
 
 // ── Random topic pools per role ──
 const topics = {
